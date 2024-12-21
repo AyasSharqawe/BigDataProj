@@ -34,6 +34,8 @@ object TwitterKafkaProducerApp {
     } catch {
       case e: TwitterException =>
         println(s"Failed to connect to Twitter: ${e.getMessage}")
+
+
     }
   }
 }
