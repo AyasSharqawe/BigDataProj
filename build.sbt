@@ -12,6 +12,9 @@ lazy val root = (project in file("."))
       "org.slf4j" % "slf4j-nop" % "2.0.9" ,// Suppresses the warning
       "org.twitter4j" % "twitter4j-core" % "4.0.7",
       "org.twitter4j" % "twitter4j-stream" % "3.0.3"
+
+
+
     )
   )
 
