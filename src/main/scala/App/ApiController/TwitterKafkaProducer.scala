@@ -8,24 +8,29 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import akka.actor.ActorSystem
 import play.api.libs.functional.syntax._
+import config.AppConfig.Extract_Space.Space
+import config.AppConfig.Extract_hashtags._
 
 object TwitterKafkaProducerApp {
   implicit val system: ActorSystem = ActorSystem("TwitterStreamSimulator")
 
-  // Define a case class to parse the tweet JSON
+  // Define case classes to parse the tweet JSON
   case class User(name: String, screen_name: String, location: Option[String])
-  case class Tweet(created_at: String, id: Long, text: String, user: User, hashtags: Option[Seq[String]])
 
-  // Implicit JSON Reads and Writes for User and Tweet
+  case class Tweet(created_at: String, id: Long, text: String, user: User, hashtags: Option[Seq[String]], space: Option[Space])
+
   implicit val userReads: Reads[User] = Json.reads[User]
   implicit val userWrites: Writes[User] = Json.writes[User]
+
+
 
   implicit val tweetReads: Reads[Tweet] = (
     (__ \ "created_at").read[String] and
       (__ \ "id").read[Long] and
       (__ \ "text").read[String] and
       (__ \ "user").read[User] and
-      (__ \ "hashtags").readNullable[Seq[String]]
+      (__ \ "hashtags").readNullable[Seq[String]] and
+      (__ \ "space").readNullable[Space]
     )(Tweet.apply _)
 
   implicit val tweetWrites: Writes[Tweet] = Json.writes[Tweet]
@@ -39,15 +44,12 @@ object TwitterKafkaProducerApp {
     kafkaProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     kafkaProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
 
-    // Create a KafkaProducer instance
     val kafkaProducer = new KafkaProducer[String, String](kafkaProps)
 
     val filePath = "boulder_flood_geolocated_tweets.json"
 
-    // Import HashtagExtractor
-    import config.AppConfig.Extract_hashtags._
 
-    // Function to process each tweet
+
     def processTweet(line: String): Unit = {
       val json = Json.parse(line)
       json.validate[Tweet] match {
@@ -59,7 +61,6 @@ object TwitterKafkaProducerApp {
 
           println(s"Tweet from ${tweet.user.screen_name}: ${tweet.text} with hashtags: ${hashtags.mkString(", ")}")
 
-          // Produce the tweet to Kafka
           val record = new ProducerRecord[String, String](kafkaTopic, tweet.id.toString, updatedJson.toString())
           kafkaProducer.send(record)
         case JsError(errors) =>
