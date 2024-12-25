@@ -7,17 +7,28 @@ import play.api.libs.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import akka.actor.ActorSystem
+import play.api.libs.functional.syntax._
 
 object TwitterKafkaProducerApp {
   implicit val system: ActorSystem = ActorSystem("TwitterStreamSimulator")
 
   // Define a case class to parse the tweet JSON
-  case class Tweet(created_at: String, id: Long, text: String, user: User)
   case class User(name: String, screen_name: String, location: Option[String])
+  case class Tweet(created_at: String, id: Long, text: String, user: User, hashtags: Option[Seq[String]])
 
-  // Implicit JSON Reads
+  // Implicit JSON Reads and Writes for User and Tweet
   implicit val userReads: Reads[User] = Json.reads[User]
-  implicit val tweetReads: Reads[Tweet] = Json.reads[Tweet]
+  implicit val userWrites: Writes[User] = Json.writes[User]
+
+  implicit val tweetReads: Reads[Tweet] = (
+    (__ \ "created_at").read[String] and
+      (__ \ "id").read[Long] and
+      (__ \ "text").read[String] and
+      (__ \ "user").read[User] and
+      (__ \ "hashtags").readNullable[Seq[String]]
+    )(Tweet.apply _)
+
+  implicit val tweetWrites: Writes[Tweet] = Json.writes[Tweet]
 
   def main(args: Array[String]): Unit = {
     val kafkaTopic = "tweet-stream"
@@ -28,47 +39,49 @@ object TwitterKafkaProducerApp {
     kafkaProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     kafkaProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
 
-    // Fix: Create a KafkaProducer instance correctly
+    // Create a KafkaProducer instance
     val kafkaProducer = new KafkaProducer[String, String](kafkaProps)
 
     val filePath = "boulder_flood_geolocated_tweets.json"
-    val tweetSource = Source.fromFile(filePath)
 
-    try {
-      // Start a simulation of a continuous stream
-      val lines = tweetSource.getLines().toList
-      val delay = 1.second // Set a delay between each "tweet"
+    // Import HashtagExtractor
+    import config.AppConfig.Extract_hashtags._
 
-      // Function to process each tweet
-      def processTweet(line: String): Unit = {
-        val json = Json.parse(line)
-        json.validate[Tweet] match {
-          case JsSuccess(tweet, _) =>
-            println(s"Tweet from ${tweet.user.screen_name}: ${tweet.text}")
+    // Function to process each tweet
+    def processTweet(line: String): Unit = {
+      val json = Json.parse(line)
+      json.validate[Tweet] match {
+        case JsSuccess(tweet, _) =>
+          val hashtags = extractHashtags(tweet.text)
 
-            // Produce the tweet to Kafka
-            val record = new ProducerRecord[String, String](kafkaTopic, tweet.id.toString, Json.stringify(json))
-            kafkaProducer.send(record)
-          case JsError(errors) =>
-            println(s"Failed to parse tweet: $errors")
-        }
+          val tweetWithHashtags = tweet.copy(hashtags = Some(hashtags))
+          val updatedJson = Json.toJson(tweetWithHashtags)
+
+          println(s"Tweet from ${tweet.user.screen_name}: ${tweet.text} with hashtags: ${hashtags.mkString(", ")}")
+
+          // Produce the tweet to Kafka
+          val record = new ProducerRecord[String, String](kafkaTopic, tweet.id.toString, updatedJson.toString())
+          kafkaProducer.send(record)
+        case JsError(errors) =>
+          println(s"Failed to parse tweet: $errors")
       }
-
-      // Stream simulation with Akka
-      lines.zipWithIndex.foreach { case (line, index) =>
-        system.scheduler.scheduleOnce(index * delay) {
-          processTweet(line)
-        }
-      }
-
-      // Keep the system running for the duration of the streaming
-      system.scheduler.scheduleOnce((lines.length * delay) + 2.seconds) {
-        println("Streaming complete. Shutting down...")
-        kafkaProducer.close() // Close KafkaProducer
-        system.terminate()
-      }
-    } finally {
-      tweetSource.close()
     }
+
+    // Schedule fetching and processing tweets every 2 seconds
+    system.scheduler.scheduleAtFixedRate(initialDelay = 0.seconds, interval = 2.seconds) { () =>
+      val tweetSource = Source.fromFile(filePath)
+      try {
+        val lines = tweetSource.getLines().toList
+        lines.foreach(processTweet)
+      } finally {
+        tweetSource.close()
+      }
+    }
+
+    // Keep the system running
+    scala.io.StdIn.readLine()
+    println("Shutting down...")
+    kafkaProducer.close() // Close KafkaProducer
+    system.terminate()
   }
 }
