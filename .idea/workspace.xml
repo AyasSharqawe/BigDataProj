@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6f14c5e5-0d68-4e9d-934e-53f1ccb34e52" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/scala/config/AppConfig/Extract_Space.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/App/ApiController/TwitterKafkaProducer.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/App/ApiController/TwitterKafkaProducer.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/scala-2.12/classes/App/ApiController/TwitterKafkaProducerApp$.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/scala-2.12/classes/App/ApiController/TwitterKafkaProducerApp$.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/scala-2.12/classes/App/ApiController/TwitterKafkaProducerApp$Tweet$.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/scala-2.12/classes/App/ApiController/TwitterKafkaProducerApp$Tweet$.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/scala-2.12/classes/App/ApiController/TwitterKafkaProducerApp$Tweet.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/scala-2.12/classes/App/ApiController/TwitterKafkaProducerApp$Tweet.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/scala-2.12/classes/App/ApiController/TwitterKafkaProducerApp.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/scala-2.12/classes/App/ApiController/TwitterKafkaProducerApp.class" afterDir="false" />
-    </list>
+    <list default="true" id="6f14c5e5-0d68-4e9d-934e-53f1ccb34e52" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -34,6 +26,13 @@
         </projects_view>
       </state>
     </system>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Scala Class" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
@@ -57,14 +56,21 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Application.SentimentAnalyzingApp.executor": "Run",
+    "Application.Sentiment_Analyzing.executor": "Run",
+    "Application.TrainAndSaveModel.executor": "Run",
+    "Application.TrainAndSaveModelApp.executor": "Run",
     "Application.TwitterKafkaProducerApp.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "Extract-__Space",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "Sentiment__Analyzeing",
     "ignore.virus.scanning.warn.message": "true",
     "kotlin-language-version-configured": "true",
-    "project.structure.last.edited": "Project",
+    "last_opened_file_path": "C:/BigDataProj",
+    "project.structure.last.edited": "SDKs",
     "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.0"
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "project.propCompiler"
   }
 }]]></component>
   <component name="ScalaProjectSettings">
