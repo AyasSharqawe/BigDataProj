@@ -8,15 +8,12 @@ import org.apache.spark.sql.functions._
 
 object Sentiment_Analyzing {
 
-  // Initialize Spark session
   val spark = SparkSession.builder
     .appName("SentimentAnalysisPipeline")
     .master("local[*]") // If running locally
     .getOrCreate()
 
-  import spark.implicits._
 
-  // Define the sentiment analysis pipeline
   val tokenizer = new Tokenizer().setInputCol("text").setOutputCol("words")
   val hashingTF = new HashingTF().setInputCol("words").setOutputCol("rawFeatures")
   val idf = new IDF().setInputCol("rawFeatures").setOutputCol("features")
@@ -24,18 +21,16 @@ object Sentiment_Analyzing {
 
   val pipeline = new Pipeline().setStages(Array(tokenizer, hashingTF, idf, lr))
 
-  // Function to train and save the model
   def trainAndSaveModel(trainingDataPath: String, modelSavePath: String): Unit = {
     val trainingData = spark.read.format("csv").option("header", "true").load(trainingDataPath)
-      .withColumnRenamed("Tweet", "text") // إعادة تسمية العمود إلى "text"
+      .withColumnRenamed("Tweet", "text")
       .withColumn("label", when(col("Sentiment") === "positive", 1.0)
         .when(col("Sentiment") === "negative", 0.0)
-        .otherwise(2.0)) // تحويل المشاعر إلى أرقام
+        .otherwise(2.0))
 
-    // تدريب النموذج
     val model = pipeline.fit(trainingData)
 
-    // حفظ النموذج
+
     try {
       model.write.overwrite().save(modelSavePath)
       println(s"Model has been successfully saved to $modelSavePath")
@@ -45,7 +40,7 @@ object Sentiment_Analyzing {
     }
   }
 
-  // Function to load the saved model
+
   def loadSentimentModel(modelPath: String): PipelineModel = {
     try {
       PipelineModel.load(modelPath)

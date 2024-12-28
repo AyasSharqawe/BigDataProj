@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6f14c5e5-0d68-4e9d-934e-53f1ccb34e52" name="Changes" comment="" />
+    <list default="true" id="6f14c5e5-0d68-4e9d-934e-53f1ccb34e52" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/build.sbt" beforeDir="false" afterPath="$PROJECT_DIR$/build.sbt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/App/ApiController/TwitterKafkaProducer.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/App/ApiController/TwitterKafkaProducer.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/config/AppConfig/Sentiment_Analyzing.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/config/AppConfig/Sentiment_Analyzing.scala" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

@@ -11,16 +11,13 @@ import play.api.libs.functional.syntax._
 import config.AppConfig.Extract_Space.Space
 import config.AppConfig.Extract_hashtags._
 import config.AppConfig.Sentiment_Analyzing._
-import org.apache.spark.ml.PipelineModel
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Dataset, Row}
+
 import org.apache.log4j.{Level, Logger}
 
-object TwitterKafkaProducerApp {
+object TwitterKafkaProducer {
   implicit val system: ActorSystem = ActorSystem("TwitterStreamSimulator")
 
-  // Define case classes to parse the tweet JSON
   case class User(name: String, screen_name: String, location: Option[String])
   case class Tweet(created_at: String, id: Long, text: String, user: User, hashtags: Option[Seq[String]], space: Option[Space])
 
@@ -39,7 +36,7 @@ object TwitterKafkaProducerApp {
   def main(args: Array[String]): Unit = {
     val kafkaTopic = "tweet-stream"
     val kafkaBroker = "localhost:9092"
-    val modelPath = "C:/BigDataProj/data/trained_model"  // استخدم نفس المسار الذي حفظت فيه النموذج
+    val modelPath = "C:/BigDataProj/data/trained_model"
 
     val kafkaProps = new Properties()
     kafkaProps.put("bootstrap.servers", kafkaBroker)
@@ -50,21 +47,18 @@ object TwitterKafkaProducerApp {
 
     val filePath = "boulder_flood_geolocated_tweets.json"
 
-    // إعداد Spark وتحميل نموذج تحليل المشاعر
     val spark = SparkSession.builder
       .appName("Sentiment Analysis")
-      .master("local[*]") // تأكد من تضمين master URL
+      .master("local[*]")
       .config("spark.ui.showConsoleProgress", "false")
       .getOrCreate()
 
-    // ضبط مستوى التسجيل في Spark إلى ERROR لتقليل عدد رسائل الـ DEBUG
     Logger.getLogger("org").setLevel(Level.ERROR)
     Logger.getLogger("akka").setLevel(Level.ERROR)
 
-    // استيراد ضمني لتحويل Seq إلى DataFrame
     import spark.implicits._
 
-    // تحميل النموذج المدرب
+
     val sentimentModel = loadSentimentModel(modelPath)
 
     def analyzeSentiment(text: String): String = {
@@ -97,7 +91,7 @@ object TwitterKafkaProducerApp {
 
           println(result)
 
-          // إرسال التغريدة إلى Kafka مع مشاعرها
+
           val updatedJson = Json.toJson(tweetWithHashtags.copy(text = s"${tweetWithHashtags.text} (Sentiment: $sentiment)"))
           val record = new ProducerRecord[String, String](kafkaTopic, tweet.id.toString, updatedJson.toString())
           kafkaProducer.send(record)
@@ -106,7 +100,7 @@ object TwitterKafkaProducerApp {
       }
     }
 
-    // Schedule fetching and processing tweets every 2 seconds
+
     system.scheduler.scheduleWithFixedDelay(initialDelay = 0.seconds, delay = 2.seconds) { () =>
       val tweetSource = Source.fromFile(filePath)
       try {
@@ -117,10 +111,10 @@ object TwitterKafkaProducerApp {
       }
     }
 
-    // Keep the system running
+
     scala.io.StdIn.readLine()
     println("Shutting down...")
-    kafkaProducer.close() // Close KafkaProducer
+    kafkaProducer.close()
     system.terminate()
     spark.stop()
   }
