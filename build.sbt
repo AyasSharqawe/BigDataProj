@@ -12,7 +12,14 @@ lazy val root = (project in file("."))
       "com.typesafe.play" %% "play-json" % "2.9.2",
       "com.typesafe.akka" %% "akka-actor-typed" % "2.6.21",
       "org.apache.kafka" % "kafka-clients" % "3.6.0",
-      "ch.qos.logback" % "logback-classic" % "1.2.10" // or another 1.2.x version
+      "ch.qos.logback" % "logback-classic" % "1.2.10",
+      "org.apache.spark" %% "spark-core" % "3.3.2",
+      "org.apache.spark" %% "spark-sql" % "3.3.2",
+      "org.apache.spark" %% "spark-mllib" % "3.3.2",
+      "com.sksamuel.elastic4s" %% "elastic4s-core" % "7.17.3",
+      "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "7.17.3"
     ),
-    javacOptions := Seq("-source", "11", "-target", "11")  // Add this line to set Java 11
+    javacOptions := Seq("-source", "11", "-target", "11") // Sets Java compatibility to Java 11
   )
+
+
