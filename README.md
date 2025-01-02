@@ -53,10 +53,10 @@ Processes the tweet and stores it in Elasticsearc
 
 Pipeline Components
 1. NLP Pipeline:
-   - Tokenization
-   - Word Embeddings (GloVe)
-   - Named Entity Recognition (NER)
-   - Sentiment Analysis (using Vivekn model)
+  - Tokenization
+  - Word Embeddings (GloVe)
+  - Named Entity Recognition (NER)
+  - Sentiment Analysis (using Vivekn model)
 2. Metadata Extraction:
   - Hashtags: Extracted using regular expressions.
   - Geospatial Data: Extracted from JSON using custom logic.
@@ -94,10 +94,10 @@ for data storage and streaming. Below is a step-by-step explanation of the workf
    - The tweet, along with its extracted metadata, is transformed into a standardized structure.
    - This includes fields for sentiment, hashtags, geospatial data, and user information.
 5. Data Storage: 
-   Apache Kafka:
+ Apache Kafka:
    - The enriched tweet is serialized into JSON and sent to a Kafka topic (tweet-stream).
    - Kafka enables real-time streaming of tweets for downstream consumers.
-  Elasticsearch:
+ Elasticsearch:
   - The enriched tweet is indexed into Elasticsearch for search and analytics.
   - Example: Tweets can be queried by hashtags, sentiment, or user information.
 6. File-Based Batch Processing:
