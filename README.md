@@ -72,9 +72,9 @@ analysis, hashtags, and geospatial information, and integrates with Apache Kafka
 for data storage and streaming. Below is a step-by-step explanation of the workflow: 
 
 1. Tweet Ingestion
-  - Tweets are ingested via a REST API endpoint (/tweets).
-  - The endpoint accepts JSON payloads representing individual tweets.
-  - Each tweet contains fields like created_at, text, user, and optional fields like hashtags and geo coordinates.
+    - Tweets are ingested via a REST API endpoint (/tweets).
+    - The endpoint accepts JSON payloads representing individual tweets.
+    - Each tweet contains fields like created_at, text, user, and optional fields like hashtags and geo coordinates.
 2. Metadata Extraction
 - Hashtag Extraction :
   - Extracts hashtags using a regex pattern.
@@ -101,8 +101,8 @@ for data storage and streaming. Below is a step-by-step explanation of the workf
   - The enriched tweet is indexed into Elasticsearch for search and analytics.
   - Example: Tweets can be queried by hashtags, sentiment, or user information.
 6. File-Based Batch Processing:
-  - Tweets can also be read from a JSON file (boulder_flood_geolocated_tweets.json).
-  - The file's contents are processed in batches, extracting metadata and sending the results to Kafka and Elasticsearch.
+    - Tweets can also be read from a JSON file (boulder_flood_geolocated_tweets.json).
+    - The file's contents are processed in batches, extracting metadata and sending the results to Kafka and Elasticsearch.
 7. HTTP Server:
-  - The project includes an Akka HTTP server that listens on port 8080.
-  - This server exposes the /tweets endpoint and manages incoming requests for tweet ingestion.
+    - The project includes an Akka HTTP server that listens on port 8080.
+    - This server exposes the /tweets endpoint and manages incoming requests for tweet ingestion.
