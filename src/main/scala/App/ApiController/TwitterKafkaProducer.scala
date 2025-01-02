@@ -1,88 +1,221 @@
 package App.ApiController
 
 import akka.actor.ActorSystem
+import com.sksamuel.elastic4s.{ElasticClient, ElasticProperties, Response, Indexable, RequestFailure, RequestSuccess}
+import com.sksamuel.elastic4s.http.JavaClient
+import com.sksamuel.elastic4s.requests.indexes.{CreateIndexResponse, IndexResponse}
 import config.AppConfig.Extract_Space._
 import config.AppConfig.Sentiment_Analyzing._
+import config.AppConfig.DataPipeline._
+import org.apache.spark.sql.{Encoders, SparkSession}
+import org.apache.spark.sql.Encoder
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-import play.api.libs.functional.syntax._
+import org.apache.kafka.clients.consumer.{KafkaConsumer}
 import play.api.libs.json._
-
+import config.AppConfig.Extract_hashtags._
+import com.sksamuel.elastic4s.ElasticDsl._
 import java.util.Properties
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.Future
 import scala.io.Source
 
+case class User(name: String, screen_name: String, location: Option[String])
+case class Tweet(created_at: String, id: Long, text: String, user: User, hashtags: Option[Seq[String]], space: Option[Seq[Space]])
 
-object TwitterKafkaProducer{
+object TwitterKafkaProducer {
+
   implicit val system: ActorSystem = ActorSystem("TwitterStreamSimulator")
 
-  // Define case classes to parse the tweet JSON
-  case class User(name: String, screen_name: String, location: Option[String])
+  println("Initializing SparkSession...")
+  implicit val spark: SparkSession = SparkSession.builder
+    .appName("TwitterKafkaProducer")
+    .master("local[*]")
+    .config("spark.driver.memory", "4g")
+    .config("spark.executor.memory", "2g")
+    .config("spark.testing.memory", "2147480000")
+    .getOrCreate()
+  println("SparkSession initialized.")
 
-  case class Tweet(created_at: String, id: Long, text: String, user: User, hashtags: Option[Seq[String]], space: Option[Seq[Space]])
+  import spark.implicits._
 
-  implicit val userReads: Reads[User] = Json.reads[User]
-  implicit val userWrites: Writes[User] = Json.writes[User]
+  implicit val tweetEncoder: Encoder[Tweet] = Encoders.product[Tweet]
 
-  implicit val tweetReads: Reads[Tweet] = (
-    (__ \ "created_at").read[String] and
-      (__ \ "id").read[Long] and
-      (__ \ "text").read[String] and
-      (__ \ "user").read[User] and
-      (__ \ "hashtags").readNullable[Seq[String]] and
-      (__ \ "space").readNullable[Seq[Space]]
-    )(Tweet.apply _)
+  implicit val userFormat: Format[User] = Json.format[User]
+  implicit val tweetFormat: Format[Tweet] = Json.format[Tweet]
 
-  implicit val tweetWrites: Writes[Tweet] = Json.writes[Tweet]
+  implicit val mapWrites: Writes[Map[String, Any]] = (map: Map[String, Any]) => {
+    Json.obj(map.map {
+      case (key, value) =>
+        val jsonValue: Json.JsValueWrapper = value match {
+          case v: String => JsString(v)
+          case v: Int => JsNumber(v)
+          case v: Long => JsNumber(v)
+          case v: Double => JsNumber(v)
+          case v: Float => JsNumber(BigDecimal(v.toString))
+          case v: Boolean => JsBoolean(v)
+          case v: Seq[_] => JsArray(v.map {
+            case s: String => JsString(s)
+            case i: Int => JsNumber(i)
+            case l: Long => JsNumber(l)
+            case d: Double => JsNumber(d)
+            case f: Float => JsNumber(BigDecimal(f.toString))
+            case b: Boolean => JsBoolean(b)
+            case _ => JsNull
+          })
+          case _ => JsNull
+        }
+        key -> jsonValue
+    }.toSeq: _*)
+  }
+
+  implicit object MapIndexable extends Indexable[Map[String, Any]] {
+    override def json(map: Map[String, Any]): String = {
+      Json.stringify(Json.toJson(map)(mapWrites))
+    }
+  }
 
   def main(args: Array[String]): Unit = {
-    val kafkaTopic = "tweet-stream"
-    val kafkaBroker = "localhost:9092"
+    try {
+      val kafkaTopic = "tweet-stream"
+      val kafkaBroker = "localhost:9092"
 
-    val kafkaProps = new Properties()
-    kafkaProps.put("bootstrap.servers", kafkaBroker)
-    kafkaProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-    kafkaProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+      println("Initializing KafkaProducer...")
+      val kafkaProps = new Properties()
+      kafkaProps.put("bootstrap.servers", kafkaBroker)
+      kafkaProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+      kafkaProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+      val kafkaProducer = new KafkaProducer[String, String](kafkaProps)
+      println("KafkaProducer initialized.")
 
-    val kafkaProducer = new KafkaProducer[String, String](kafkaProps)
+      println("Initializing ElasticClient...")
+      val client = ElasticClient(JavaClient(ElasticProperties("http://localhost:9200")))
+      println("ElasticClient initialized.")
 
-    val filePath = "boulder_flood_geolocated_tweets.json"
-
-    def processTweet(line: String): Unit = {
-      val json = Json.parse(line)
-      json.validate[Tweet] match {
-        case JsSuccess(tweet, _) =>
-          val hashtags = extractHashtags(tweet.text)
-          val spaces = extractSpaces(json)
-          val sentiment = analyzeSentiment(tweet.text)
-          val tweetWithSpaces = tweet.copy(hashtags = Some(hashtags), space = Some(spaces))
-
-          val updatedJson = Json.toJson(tweetWithSpaces)
-println("-----------------------------------------------------------------------------------------")
-          println(s"Tweet from ${tweet.user.screen_name}: ${tweet.text} with hashtags: ${hashtags.mkString(", ")} and spaces: ${spaces.map(_.coordinates.mkString(", ")).mkString("; ")} and sentiment: $sentiment")
-          println("-----------------------------------------------------------------------------------------")
-          val record = new ProducerRecord[String, String](kafkaTopic, tweet.id.toString, updatedJson.toString())
-          kafkaProducer.send(record)
-
-
-        case JsError(errors) =>
-          println(s"Failed to parse tweet: $errors")
+      // إضافة الكود الخاص بإنشاء الفهرس هنا
+      val createIndexResponse: Future[Response[CreateIndexResponse]] = client.execute {
+        createIndex("tweets_index")
       }
-    }
 
-    system.scheduler.scheduleAtFixedRate(initialDelay = 0.seconds, interval = 2.seconds) { () =>
-      val tweetSource = Source.fromFile(filePath)
-      try {
-        val lines = tweetSource.getLines().toList
-        lines.foreach(processTweet)
-      } finally {
-        tweetSource.close()
+      createIndexResponse.onComplete {
+        case scala.util.Success(response) =>
+          response match {
+            case RequestSuccess(_, _, _, result) =>
+              println(s"تم إنشاء الفهرس tweets_index بنجاح: ${result.acknowledged}")
+            case RequestFailure(_, _, _, error) =>
+              println(s"فشل إنشاء الفهرس tweets_index: ${error.reason}")
+          }
+        case scala.util.Failure(exception) =>
+          println(s"فشل إنشاء الفهرس tweets_index: ${exception.getMessage}")
       }
-    }
 
-    scala.io.StdIn.readLine()
-    println("Shutting down...")
-    kafkaProducer.close() // Close KafkaProducer
-    system.terminate()
+      val filePath = "boulder_flood_geolocated_tweets.json"
+
+      def sendToKafka(): Unit = {
+        println("Reading data from file and sending to Kafka...")
+        val tweetSource = Source.fromFile(filePath)
+        try {
+          val lines = tweetSource.getLines().toList
+          println(s"Found ${lines.length} lines in the file.")
+          lines.foreach { line =>
+            kafkaProducer.send(new ProducerRecord[String, String](kafkaTopic, line))
+          }
+        } catch {
+          case e: Exception => println(s"Error reading file: ${e.getMessage}")
+        } finally {
+          tweetSource.close()
+        }
+      }
+
+      def processTweetsFromKafka(): Unit = {
+        println("Initializing KafkaConsumer...")
+        val consumerProps = new Properties()
+        consumerProps.put("bootstrap.servers", kafkaBroker)
+        consumerProps.put("group.id", "twitter-consumer-group")
+        consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
+        consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
+        consumerProps.put("auto.offset.reset", "earliest")
+
+        val kafkaConsumer = new KafkaConsumer[String, String](consumerProps)
+        kafkaConsumer.subscribe(java.util.Collections.singletonList(kafkaTopic))
+        println("KafkaConsumer initialized.")
+
+        println("Consuming tweets from Kafka...")
+        while (true) {
+          val records = kafkaConsumer.poll(1000)
+          val iterator = records.iterator()
+          while (iterator.hasNext) {
+            val record = iterator.next()
+            val tweetJson = record.value()
+            processTweet(tweetJson)
+          }
+        }
+      }
+
+      def processTweet(line: String): Unit = {
+        try {
+          println(s"Processing tweet: $line")
+          val json = Json.parse(line)
+          json.asOpt[Tweet] match {
+            case Some(tweet) =>
+              println(s"Parsed tweet: $tweet")
+              val hashtags = extractHashtags(tweet.text)
+              val spaces = extractSpaces(Json.toJson(tweet))
+              val sentiment = analyzeSentiment(tweet.text)
+
+              val tweetWithMetadata = tweet.copy(
+                hashtags = Some(hashtags),
+                space = Some(spaces.getOrElse(Seq.empty))
+              )
+
+              println(s"Tweet with metadata: $tweetWithMetadata")
+
+              val tweetDf = Seq(tweetWithMetadata).toDF()
+              val processedTweetDf = pipeline.fit(tweetDf).transform(tweetDf)
+              val processedTweet = processedTweetDf.as[Tweet].collect().head
+
+              val tweetMap = Map(
+                "created_at" -> processedTweet.created_at,
+                "id" -> processedTweet.id,
+                "text" -> processedTweet.text,
+                "user" -> Json.stringify(Json.toJson(processedTweet.user)),
+                "hashtags" -> processedTweet.hashtags.getOrElse(Seq.empty),
+                "space" -> processedTweet.space.getOrElse(Seq.empty),
+                "sentiment" -> sentiment
+              )
+
+              // إرسال التغريدة إلى Elasticsearch
+              val indexResponse: Future[Response[IndexResponse]] = client.execute {
+                indexInto("tweets_index").id(tweet.id.toString).doc(tweetMap)
+              }
+
+              indexResponse.onComplete {
+                case scala.util.Success(response) =>
+                  response match {
+                    case RequestSuccess(_, _, _, result) =>
+                      println(s"تم تخزين التغريدة ${tweet.id} في Elasticsearch بنجاح. الحالة: ${result.toString}")
+                    case RequestFailure(_, _, _, error) =>
+                      println(s"فشل تخزين التغريدة ${tweet.id} في Elasticsearch: ${error.reason}")
+                  }
+                case scala.util.Failure(exception) =>
+                  println(s"فشل تخزين التغريدة ${tweet.id} في Elasticsearch: ${exception.getMessage}")
+              }
+
+            case None =>
+              println(s"Failed to parse tweet")
+          }
+        } catch {
+          case e: Exception =>
+            println(s"Exception: ${e.getMessage}")
+        }
+      }
+
+      // Start the data pipeline
+      sendToKafka()
+      processTweetsFromKafka()
+
+    } catch {
+      case e: Exception =>
+        println(s"Error in main: ${e.getMessage}")
+    }
   }
 }
