@@ -76,7 +76,7 @@ for data storage and streaming. Below is a step-by-step explanation of the workf
   - The endpoint accepts JSON payloads representing individual tweets.
   - Each tweet contains fields like created_at, text, user, and optional fields like hashtags and geo coordinates.
 2. Metadata Extraction
-  Hashtag Extraction :
+- Hashtag Extraction :
   - Extracts hashtags using a regex pattern.
   - Example: #New is extracted from the text "Happy #New Year".
   Geospatial Data:
@@ -85,7 +85,7 @@ for data storage and streaming. Below is a step-by-step explanation of the workf
  Sentiment Analysis:
   - Analyzes the sentiment of the tweet text using a pretrained NLP pipeline (Vivekn Sentiment Model).
 3. NLP Pipeline:
-  Built using Spark NLP:
+- Built using Spark NLP:
   - Tokenizes the text into individual words.
   - Applies GloVe word embeddings to enhance understanding.
   - Identifies named entities (NER) such as locations, organizations, and persons.
@@ -93,11 +93,11 @@ for data storage and streaming. Below is a step-by-step explanation of the workf
 4. Data Transformation:
    - The tweet, along with its extracted metadata, is transformed into a standardized structure.
    - This includes fields for sentiment, hashtags, geospatial data, and user information.
-5. Data Storage: 
- Apache Kafka:
+5. Data Storage:
+- Apache Kafka:
    - The enriched tweet is serialized into JSON and sent to a Kafka topic (tweet-stream).
    - Kafka enables real-time streaming of tweets for downstream consumers.
- Elasticsearch:
+- Elasticsearch:
   - The enriched tweet is indexed into Elasticsearch for search and analytics.
   - Example: Tweets can be queried by hashtags, sentiment, or user information.
 6. File-Based Batch Processing:
