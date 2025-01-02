@@ -47,9 +47,9 @@ Kafka: URL in TwitterKafkaProducer:
 - val kafkaTopic = "tweet-stream"
 
 ### API Endpoints
-/tweets (POST)
-Accepts a JSON payload representing a tweet.
-Processes the tweet and stores it in Elasticsearc
+- /tweets (POST)
+  - Accepts a JSON payload representing a tweet.
+  - Processes the tweet and stores it in Elasticsearc
 
 Pipeline Components
 1. NLP Pipeline:
