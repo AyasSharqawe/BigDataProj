@@ -53,16 +53,16 @@ Kafka: URL in TwitterKafkaProducer:
 
 Pipeline Components
 1. NLP Pipeline:
-  - Tokenization
-  - Word Embeddings (GloVe)
-  - Named Entity Recognition (NER)
-  - Sentiment Analysis (using Vivekn model)
+   - Tokenization
+   - Word Embeddings (GloVe)
+   - Named Entity Recognition (NER)
+   - Sentiment Analysis (using Vivekn model)
 2. Metadata Extraction:
-  - Hashtags: Extracted using regular expressions.
-  - Geospatial Data: Extracted from JSON using custom logic.
+   - Hashtags: Extracted using regular expressions.
+   - Geospatial Data: Extracted from JSON using custom logic.
 3. Data Storage:
-  - Processed tweets are sent to Kafka.
-  - Stored in Elasticsearch for further analysis.
+   - Processed tweets are sent to Kafka.
+   - Stored in Elasticsearch for further analysis.
 
 
 
