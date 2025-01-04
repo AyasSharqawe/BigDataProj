@@ -64,11 +64,11 @@ object TwitterKafkaProducer {
     try {
       val producer = createKafkaProducer()
       producer.send(new ProducerRecord[String, String](kafkaTopic, "Test Message"))
-      println("تم الاتصال بـ Kafka بنجاح.")
+      println("Successfully connected to Kafka.")
       producer.close()
     } catch {
       case e: Exception =>
-        println(s"خطأ في الاتصال بـ Kafka: ${e.getMessage}")
+        println(s"Error connecting to Kafka: ${e.getMessage}")
     }
   }
 
@@ -78,9 +78,9 @@ object TwitterKafkaProducer {
     }
 
     response.onComplete {
-      case scala.util.Success(_) => println("تم الاتصال بـ Elasticsearch بنجاح.")
+      case scala.util.Success(_) => println("Successfully connected to Elasticsearch.")
       case scala.util.Failure(exception) =>
-        println(s"خطأ في الاتصال بـ Elasticsearch: ${exception.getMessage}")
+        println(s"Error connecting to Elasticsearch: ${exception.getMessage}")
     }
   }
 
@@ -89,34 +89,34 @@ object TwitterKafkaProducer {
       createIndex("tweets_index")
     }.onComplete {
       case scala.util.Success(response) =>
-        println("تم إنشاء الفهرس بنجاح.")
+        println("Index created successfully.")
       case scala.util.Failure(exception) =>
-        println(s"فشل إنشاء الفهرس: ${exception.getMessage}")
+        println(s"Failed to create index: ${exception.getMessage}")
     }
   }
 
   def sendToKafka(filePath: String): Unit = {
-    println("قراءة البيانات من الملف وإرسالها إلى Kafka...")
+    println("Reading data from file and sending to Kafka...")
     val kafkaProducer = createKafkaProducer()
 
     try {
       val tweetSource = Source.fromFile(filePath)
       val lines = tweetSource.getLines().toList
-      println(s"تم العثور على ${lines.length} خطوط في الملف.")
+      println(s"Found ${lines.length} lines in the file.")
       lines.foreach { line =>
         kafkaProducer.send(new ProducerRecord[String, String](kafkaTopic, line))
       }
       tweetSource.close()
     } catch {
       case _: java.io.FileNotFoundException =>
-        println(s"الملف $filePath غير موجود. يرجى التحقق من المسار.")
+        println(s"File $filePath not found. Please check the path.")
       case e: Exception =>
-        println(s"خطأ أثناء قراءة الملف: ${e.getMessage}")
+        println(s"Error while reading the file: ${e.getMessage}")
     }
   }
 
   def createKafkaProducer(): KafkaProducer[String, String] = {
-    println("تهيئة KafkaProducer...")
+    println("Initializing KafkaProducer...")
     val kafkaProps = new Properties()
     kafkaProps.put("bootstrap.servers", kafkaBroker)
     kafkaProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
@@ -125,12 +125,12 @@ object TwitterKafkaProducer {
   }
 
   def processTweetsFromKafka(): Unit = {
-    println("تهيئة KafkaConsumer...")
+    println("Initializing KafkaConsumer...")
     val kafkaConsumer = createKafkaConsumer()
     kafkaConsumer.subscribe(java.util.Collections.singletonList(kafkaTopic))
-    println("KafkaConsumer جاهز.")
+    println("KafkaConsumer is ready.")
 
-    println("استهلاك التغريدات من Kafka...")
+    println("Consuming tweets from Kafka...")
     while (true) {
       val records = kafkaConsumer.poll(1000)
       records.forEach { record =>
@@ -152,11 +152,11 @@ object TwitterKafkaProducer {
 
   def processTweet(line: String): Unit = {
     try {
-      println(s"معالجة التغريدة: $line")
+      println(s"Processing tweet: $line")
       val json = Json.parse(line)
       json.asOpt[Tweet] match {
         case Some(tweet) =>
-          println(s"تم تحليل التغريدة: $tweet")
+          println(s"Parsed tweet: $tweet")
 
           val tweetDf = Seq(tweet).toDF()
           val processedTweetDf = pipeline.fit(tweetDf).transform(tweetDf)
@@ -175,11 +175,11 @@ object TwitterKafkaProducer {
           saveTweetToElasticsearch(tweetWithMetadata, sentiment)
 
         case None =>
-          println(s"فشل تحليل التغريدة")
+          println(s"Failed to parse tweet")
       }
     } catch {
       case e: Exception =>
-        println(s"استثناء: ${e.getMessage}")
+        println(s"Exception: ${e.getMessage}")
     }
   }
 
@@ -204,12 +204,12 @@ object TwitterKafkaProducer {
       case scala.util.Success(response) =>
         response match {
           case RequestSuccess(_, _, _, result) =>
-            println(s"تم تخزين التغريدة ${tweet.id} في Elasticsearch بنجاح. الحالة: ${result.toString}")
+            println(s"Tweet ${tweet.id} stored successfully in Elasticsearch. Status: ${result.toString}")
           case RequestFailure(_, _, _, error) =>
-            println(s"فشل تخزين التغريدة ${tweet.id} في Elasticsearch: ${error.reason}")
+            println(s"Failed to store tweet ${tweet.id} in Elasticsearch: ${error.reason}")
         }
       case scala.util.Failure(exception) =>
-        println(s"فشل تخزين التغريدة ${tweet.id} في Elasticsearch: ${exception.getMessage}")
+        println(s"Failed to store tweet ${tweet.id} in Elasticsearch: ${exception.getMessage}")
     }
   }
 }
