@@ -8,7 +8,6 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "org.apache.kafka" %% "kafka" % "2.8.0",
       "ch.qos.logback" % "logback-classic" % "1.4.11",
-      "org.slf4j" % "slf4j-nop" % "2.0.9",
       "com.typesafe.play" %% "play-json" % "2.9.2",
       "com.typesafe.akka" %% "akka-actor-typed" % "2.6.21",
       "ch.qos.logback" % "logback-classic" % "1.2.10",

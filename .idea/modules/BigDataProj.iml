@@ -249,8 +249,7 @@
     <orderEntry type="library" name="sbt: org.scalanlp:breeze_2.12:1.2:jar" level="project" />
     <orderEntry type="library" name="sbt: org.slf4j:jcl-over-slf4j:1.7.32:jar" level="project" />
     <orderEntry type="library" name="sbt: org.slf4j:jul-to-slf4j:1.7.32:jar" level="project" />
-    <orderEntry type="library" name="sbt: org.slf4j:slf4j-api:2.0.9:jar" level="project" />
-    <orderEntry type="library" name="sbt: org.slf4j:slf4j-nop:2.0.9:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.slf4j:slf4j-api:2.0.7:jar" level="project" />
     <orderEntry type="library" name="sbt: org.spark-project.spark:unused:1.0.0:jar" level="project" />
     <orderEntry type="library" name="sbt: org.threeten:threeten-extra:1.5.0:jar" level="project" />
     <orderEntry type="library" name="sbt: org.tukaani:xz:1.9:jar" level="project" />
