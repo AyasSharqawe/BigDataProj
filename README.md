@@ -1,4 +1,6 @@
-
+----------
+Link from Presentation : https://www.canva.com/design/DAGbRH9hCmE/uqfmv8BWtY_vtlxwMj1DCQ/edit?utm_content=DAGbRH9hCmE&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+----------
 This project implements a pipeline for processing tweets, extracting metadata, and integrating with Apache Kafka, Elasticsearch, and Spark. It provides an HTTP endpoint to receive tweets, processes them to extract metadata such as hashtags, geospatial data, and sentiment analysis, and sends the processed data to Kafka and Elasticsearch.
 
 ----------
